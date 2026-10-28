@@ -1,25 +1,34 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { Peak } from "@/data/peaks";
+import type { Peak } from "@/lib/peaks";
 import { useConquered } from "@/lib/conquered";
 import MapView from "./MapView";
 import ProgressSummary from "./ProgressSummary";
 
 type Filter = "all" | "done" | "todo";
 
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "all", label: "Wszystkie" },
-  { value: "done", label: "Zdobyte" },
-  { value: "todo", label: "Do zdobycia" },
-];
-
 export default function Explorer({ peaks }: { peaks: Peak[] }) {
   const { conquered, conquer, unconquer } = useConquered();
   const [selected, setSelected] = useState<string>();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [celebrating, setCelebrating] = useState<string>();
+
+  const conquerWithCelebration = (slug: string) => {
+    conquer(slug);
+    setCelebrating(slug);
+    setTimeout(() => setCelebrating((current) => (current === slug ? undefined : current)), 2000);
+  };
+
+  const doneCount = peaks.filter((p) => conquered[p.slug]).length;
+  const filters: { value: Filter; label: string; count: number }[] = [
+    { value: "all", label: "Wszystkie", count: peaks.length },
+    { value: "done", label: "Zdobyte", count: doneCount },
+    { value: "todo", label: "Do zdobycia", count: peaks.length - doneCount },
+  ];
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -34,78 +43,84 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
 
   return (
     <div className="flex flex-col-reverse lg:h-dvh lg:flex-row">
-      <aside className="flex flex-col border-border bg-surface lg:w-96 lg:shrink-0 lg:border-r">
-        <header className="space-y-5 border-b border-border p-5">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
-              Korona Gór Polski
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold text-balance">
-              28 szczytów. Ile już masz?
-            </h1>
+      <aside className="flex flex-col border-line lg:w-[26rem] lg:shrink-0 lg:border-r">
+        <header className="bg-mint p-6 text-ink">
+          <div className="flex items-baseline justify-between">
+            <p className="label">Korona Gór Polski</p>
+            <p className="label">28 szczytów</p>
           </div>
-          <ProgressSummary peaks={peaks} conquered={conquered} />
+          <h1 className="mt-6 font-serif text-4xl leading-none italic">Ile już masz?</h1>
+          <div className="mt-2">
+            <ProgressSummary peaks={peaks} conquered={conquered} />
+          </div>
         </header>
 
-        <div className="space-y-3 border-b border-border p-4">
+        <div className="border-b border-line px-6 pt-5">
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Szukaj szczytu lub pasma…"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-accent"
+            placeholder="Szukaj szczytu lub pasma"
+            className="w-full border-b border-line bg-transparent pb-2 font-ui text-sm outline-none placeholder:text-muted focus:border-mint"
           />
-          <div className="flex gap-1 rounded-lg bg-background p-1 text-sm">
-            {FILTERS.map((f) => (
+          <div className="mt-4 flex gap-5">
+            {filters.map((f) => (
               <button
                 key={f.value}
                 onClick={() => setFilter(f.value)}
-                className={`flex-1 rounded-md px-2 py-1.5 transition-colors ${
+                className={`label -mb-px border-b-2 pb-3 transition-colors ${
                   filter === f.value
-                    ? "bg-surface-2 text-foreground"
-                    : "text-muted hover:text-foreground"
+                    ? "border-mint text-paper"
+                    : "border-transparent text-muted hover:text-paper"
                 }`}
               >
-                {f.label}
+                {f.label} <span className="tabular-nums opacity-60">{f.count}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <ol className="flex-1 overflow-y-auto p-2">
+        <ol className="peak-scroll flex-1 overflow-y-auto">
           {visible.map((peak) => {
-            const date = conquered[peak.slug];
-            const rank = peaks.indexOf(peak) + 1;
+            const isDone = Boolean(conquered[peak.slug]);
+            const isSelected = peak.slug === selected;
+            const rank = String(peaks.indexOf(peak) + 1).padStart(2, "0");
             return (
-              <li key={peak.slug}>
+              <li key={peak.slug} className="border-b border-line">
                 <button
                   onClick={() => {
                     setSelected(peak.slug);
                     // On mobile the map sits above the list — bring it into view.
                     if (window.innerWidth < 1024) window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
-                    peak.slug === selected ? "bg-surface-2" : "hover:bg-surface-2/60"
+                  className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-baseline gap-2 px-6 py-3 text-left transition-colors ${
+                    isSelected ? "bg-pink text-ink" : "hover:bg-ink-2"
                   }`}
                 >
-                  <span
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums ${
-                      date ? "bg-summit text-background" : "border border-border text-muted"
-                    }`}
-                  >
-                    {date ? "✓" : rank}
+                  <span className={`font-ui text-xs tabular-nums ${isSelected ? "" : "text-muted"}`}>
+                    {rank}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{peak.name}</span>
-                    <span className="block truncate text-xs text-muted">{peak.range}</span>
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2 truncate font-serif text-2xl leading-tight">
+                      {peak.name}
+                      {isDone && (
+                        <span
+                          className={`size-2 shrink-0 ${isSelected ? "bg-ink" : "bg-pink"}`}
+                          aria-label="zdobyty"
+                        />
+                      )}
+                    </span>
+                    <span className={`label block truncate ${isSelected ? "" : "text-muted"}`}>
+                      {peak.range}
+                    </span>
                   </span>
-                  <span className="text-sm tabular-nums text-muted">{peak.height} m</span>
+                  <span className="font-ui text-sm tabular-nums">{peak.height}</span>
                 </button>
               </li>
             );
           })}
           {visible.length === 0 && (
-            <li className="p-6 text-center text-sm text-muted">Brak szczytów dla tego filtra.</li>
+            <li className="label p-6 text-muted">Brak szczytów dla tego filtra</li>
           )}
         </ol>
       </aside>
@@ -116,47 +131,67 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
           conquered={conquered}
           selected={selected}
           onSelect={setSelected}
+          celebrating={celebrating}
         />
 
         {selectedPeak && (
-          <div className="absolute inset-x-3 bottom-3 z-[1000] rounded-xl border border-border bg-surface/95 p-4 shadow-2xl backdrop-blur sm:left-auto sm:right-4 sm:bottom-4 sm:w-80">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs text-muted">{selectedPeak.range}</p>
-                <h2 className="text-lg font-semibold">{selectedPeak.name}</h2>
+          <article
+            key={selectedPeak.slug}
+            className="absolute inset-x-3 bottom-3 z-[1000] animate-[card-in_0.4s_ease-out] border border-line bg-ink sm:left-auto sm:right-4 sm:bottom-4 sm:w-80"
+          >
+            <button
+              onClick={() => setSelected(undefined)}
+              className="absolute top-0 right-0 z-10 flex size-9 items-center justify-center bg-ink font-ui text-paper hover:bg-pink hover:text-ink"
+              aria-label="Zamknij i wróć do widoku Polski"
+            >
+              ✕
+            </button>
+            {selectedPeak.image && (
+              <div className="relative h-36 bg-mint">
+                <Image
+                  src={selectedPeak.image.src}
+                  alt={selectedPeak.name}
+                  fill
+                  sizes="320px"
+                  className="duotone object-cover"
+                />
               </div>
-              <span className="text-xl font-semibold tabular-nums text-accent">
-                {selectedPeak.height}
-                <span className="text-sm text-muted"> m</span>
-              </span>
+            )}
+            <div className="p-4">
+              <p className="label text-muted">{selectedPeak.range}</p>
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-serif text-3xl leading-tight">{selectedPeak.name}</h2>
+                <span className="font-ui text-sm tabular-nums text-mint">
+                  {selectedPeak.height} m
+                </span>
+              </div>
+              <p className="mt-2 line-clamp-3 text-sm text-muted">{selectedPeak.description}</p>
             </div>
-            <p className="mt-2 line-clamp-3 text-sm text-muted">{selectedPeak.description}</p>
-            <div className="mt-4 flex gap-2">
+            <div className="grid grid-cols-[1fr_auto] border-t border-line">
               {conquered[selectedPeak.slug] ? (
                 <button
                   onClick={() => unconquer(selectedPeak.slug)}
-                  className="flex-1 rounded-lg bg-summit/15 px-3 py-2 text-sm font-medium text-summit hover:bg-summit/25"
+                  className="label animate-[card-in_0.35s_ease-out] bg-pink px-4 py-3 text-left text-ink hover:brightness-95"
                   title="Kliknij, aby cofnąć"
                 >
-                  ✓ Zdobyty{" "}
-                  {new Date(conquered[selectedPeak.slug]).toLocaleDateString("pl-PL")}
+                  Zdobyty {new Date(conquered[selectedPeak.slug]).toLocaleDateString("pl-PL")}
                 </button>
               ) : (
                 <button
-                  onClick={() => conquer(selectedPeak.slug)}
-                  className="flex-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-background hover:brightness-110"
+                  onClick={() => conquerWithCelebration(selectedPeak.slug)}
+                  className="label bg-mint px-4 py-3 text-left text-ink hover:brightness-95"
                 >
                   Oznacz jako zdobyty
                 </button>
               )}
               <Link
                 href={`/szczyt/${selectedPeak.slug}`}
-                className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface-2"
+                className="label border-l border-line px-4 py-3 hover:bg-ink-2"
               >
                 Szczegóły →
               </Link>
             </div>
-          </div>
+          </article>
         )}
       </section>
     </div>

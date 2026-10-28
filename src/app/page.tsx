@@ -1,7 +1,9 @@
 import Explorer from "@/components/Explorer";
-import { peaks } from "@/data/peaks";
+import { getPeaks } from "@/lib/peaks";
 
-export default function Home() {
+export default async function Home() {
+  const peaks = await getPeaks();
+
   return (
     <main>
       <Explorer peaks={peaks} />

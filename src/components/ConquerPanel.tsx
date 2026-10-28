@@ -1,71 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import type { Peak } from "@/data/peaks";
+import type { Peak } from "@/lib/peaks";
 import { useConquered } from "@/lib/conquered";
-import MapView from "./MapView";
 
 export default function ConquerPanel({ peak }: { peak: Peak }) {
   const { conquered, conquer, unconquer } = useConquered();
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const conqueredOn = conquered[peak.slug];
 
-  return (
-    <div className="space-y-4">
-      <div className="h-64 overflow-hidden rounded-xl border border-border">
-        <MapView
-          peaks={[peak]}
-          conquered={conquered}
-          selected={peak.slug}
-          focus={{ coords: peak.coords, zoom: 11 }}
-        />
+  if (conqueredOn) {
+    return (
+      <div className="flex animate-[card-in_0.4s_ease-out] items-end justify-between gap-4 bg-pink p-5 text-ink">
+        <div>
+          <p className="label">Zdobyty</p>
+          <p className="mt-1 font-serif text-3xl leading-none">
+            {new Date(conqueredOn).toLocaleDateString("pl-PL", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+        <button onClick={() => unconquer(peak.slug)} className="label underline hover:no-underline">
+          Cofnij
+        </button>
       </div>
+    );
+  }
 
-      <div className="rounded-xl border border-border bg-surface p-5">
-        {conqueredOn ? (
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-muted">Zdobyty</p>
-              <p className="text-lg font-semibold text-summit">
-                {new Date(conqueredOn).toLocaleDateString("pl-PL", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </p>
-            </div>
-            <button
-              onClick={() => unconquer(peak.slug)}
-              className="rounded-lg border border-border px-3 py-2 text-sm text-muted hover:text-foreground"
-            >
-              Cofnij
-            </button>
-          </div>
-        ) : (
-          <form
-            className="flex flex-wrap items-end gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              conquer(peak.slug, date);
-            }}
-          >
-            <label className="flex-1 text-sm">
-              <span className="mb-1 block text-muted">Data wejścia</span>
-              <input
-                type="date"
-                value={date}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setDate(e.target.value)}
-                required
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 [color-scheme:dark]"
-              />
-            </label>
-            <button className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-background hover:brightness-110">
-              Oznacz jako zdobyty
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+  return (
+    <form
+      className="border border-line"
+      onSubmit={(e) => {
+        e.preventDefault();
+        conquer(peak.slug, date);
+      }}
+    >
+      <label className="block p-5">
+        <span className="label text-muted">Data wejścia</span>
+        <input
+          type="date"
+          value={date}
+          max={new Date().toISOString().slice(0, 10)}
+          onChange={(e) => setDate(e.target.value)}
+          required
+          className="mt-2 block w-full border-b border-line bg-transparent pb-1 font-ui outline-none [color-scheme:dark] focus:border-mint"
+        />
+      </label>
+      <button className="label w-full bg-mint px-5 py-3 text-left text-ink hover:brightness-95">
+        Oznacz jako zdobyty →
+      </button>
+    </form>
   );
 }

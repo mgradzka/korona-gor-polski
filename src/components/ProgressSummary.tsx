@@ -1,5 +1,6 @@
-import type { Peak } from "@/data/peaks";
 import type { ConqueredMap } from "@/lib/conquered";
+import type { Peak } from "@/lib/peaks";
+import Odometer from "./Odometer";
 
 export default function ProgressSummary({
   peaks,
@@ -9,7 +10,6 @@ export default function ProgressSummary({
   conquered: ConqueredMap;
 }) {
   const done = peaks.filter((p) => conquered[p.slug]);
-  const percent = Math.round((done.length / peaks.length) * 100);
   const metres = done.reduce((sum, p) => sum + p.height, 0);
   const highest = done.reduce<Peak | undefined>(
     (best, p) => (!best || p.height > best.height ? p : best),
@@ -17,36 +17,41 @@ export default function ProgressSummary({
   );
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <span className="text-3xl font-semibold tabular-nums">
-          {done.length}
-          <span className="text-muted">/{peaks.length}</span>
+    <div className="space-y-5">
+      <p className="font-serif leading-none">
+        <span className="text-[6rem]">
+          <Odometer value={done.length} />
         </span>
-        <span className="text-sm text-muted">{percent}% Korony</span>
-      </div>
-      <div
-        className="h-2 overflow-hidden rounded-full bg-surface-2"
-        role="progressbar"
-        aria-valuenow={done.length}
-        aria-valuemin={0}
-        aria-valuemax={peaks.length}
+        <span className="text-4xl">/{peaks.length}</span>
+      </p>
+
+      <ol
+        className="grid grid-cols-14 gap-1"
+        aria-label="Postęp zdobywania Korony"
       >
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-accent to-summit transition-all duration-700"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <dl className="grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-lg bg-surface-2 px-3 py-2">
-          <dt className="text-xs text-muted">Suma wysokości</dt>
-          <dd className="font-medium tabular-nums">
+        {peaks.map((peak) => (
+          <li
+            key={peak.slug}
+            title={`${peak.name} · ${peak.height} m`}
+            className={`aspect-square border border-ink ${
+              conquered[peak.slug]
+                ? "animate-[square-pop_0.6s_ease-out] bg-pink"
+                : ""
+            }`}
+          />
+        ))}
+      </ol>
+
+      <dl className="grid grid-cols-2 border-t border-ink/25 pt-3">
+        <div>
+          <dt className="label opacity-70">Suma wysokości</dt>
+          <dd className="font-ui text-sm tabular-nums">
             {metres.toLocaleString("pl-PL")} m
           </dd>
         </div>
-        <div className="rounded-lg bg-surface-2 px-3 py-2">
-          <dt className="text-xs text-muted">Najwyższy zdobyty</dt>
-          <dd className="truncate font-medium">{highest?.name ?? "—"}</dd>
+        <div>
+          <dt className="label opacity-70">Najwyższy zdobyty</dt>
+          <dd className="truncate font-ui text-sm">{highest?.name ?? "—"}</dd>
         </div>
       </dl>
     </div>

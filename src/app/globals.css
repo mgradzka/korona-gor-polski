@@ -1,65 +1,170 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b1215;
-  --surface: #121c20;
-  --surface-2: #1a272c;
-  --border: #24343a;
-  --foreground: #e8eef0;
-  --muted: #8ba0a7;
-  --accent: #f2a541;
-  --summit: #34d399;
+  --ink: #1f271c;
+  --ink-2: #273123;
+  --line: #3b4636;
+  --paper: #edf1e4;
+  --muted: #9daa95;
+  --mint: #9fd1a0;
+  --pink: #d39ab8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-border: var(--border);
-  --color-foreground: var(--foreground);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-line: var(--line);
+  --color-paper: var(--paper);
   --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-summit: var(--summit);
+  --color-mint: var(--mint);
+  --color-pink: var(--pink);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument-serif);
+  --font-ui: var(--font-inter);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--ink);
+  color: var(--paper);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Leaflet tooltips styled to match the dark theme */
+::selection {
+  background: var(--pink);
+  color: var(--ink);
+}
+
+/* Small uppercase labels used throughout the UI */
+@utility label {
+  font-family: var(--font-inter);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Square mint scrollbar for the peak list */
+.peak-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.peak-scroll::-webkit-scrollbar-track {
+  background: var(--ink-2);
+}
+
+.peak-scroll::-webkit-scrollbar-thumb {
+  background: var(--mint);
+  border: 2px solid var(--ink-2);
+}
+
+.peak-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--pink);
+}
+
+/* Browsers without ::-webkit-scrollbar (Firefox) get the standard properties */
+@supports not selector(::-webkit-scrollbar) {
+  .peak-scroll {
+    scrollbar-color: var(--mint) var(--ink-2);
+  }
+}
+
+/* Mint duotone for photos: a greyscale image multiplied over a mint block */
+@utility duotone {
+  filter: grayscale(1) contrast(1.15);
+  mix-blend-mode: multiply;
+}
+
 .leaflet-container {
-  background: var(--background);
+  background: var(--ink);
   font-family: inherit;
 }
 
-/* Mute the bright topo tiles so they sit well next to the dark UI */
+/* Slightly dimmed so the topo map sits well next to the dark UI */
 .leaflet-tile-pane {
-  filter: saturate(0.75) brightness(0.8) contrast(1.05);
+  filter: brightness(0.8) saturate(0.9);
 }
 
 .leaflet-tooltip.peak-tooltip {
-  background: var(--surface-2);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: 12px;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 3px 8px;
+  font-family: var(--font-inter);
+  font-size: 11px;
+  box-shadow: none;
 }
 
 .leaflet-tooltip.peak-tooltip::before {
   display: none;
 }
 
+.leaflet-bar,
+.leaflet-bar a {
+  border-radius: 0 !important;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+}
+
+.leaflet-bar a {
+  background: var(--ink) !important;
+  color: var(--paper) !important;
+  border-color: var(--line) !important;
+}
+
 .leaflet-control-attribution {
-  background: rgb(11 18 21 / 0.7) !important;
+  background: rgb(31 39 28 / 0.8) !important;
   color: var(--muted) !important;
+  font-family: var(--font-inter);
+  font-size: 10px;
 }
 
 .leaflet-control-attribution a {
   color: var(--muted) !important;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* A progress square filling in when its peak is conquered */
+@keyframes square-pop {
+  0% { transform: scale(0.3); background-color: transparent; }
+  55% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* Pink rings spreading from a peak on the map the moment it is conquered */
+.conquer-ripple span {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--pink);
+  border-radius: 9999px;
+  opacity: 0;
+  animation: ripple 1.4s ease-out forwards;
+}
+
+.conquer-ripple span:nth-child(2) { animation-delay: 0.2s; }
+.conquer-ripple span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes ripple {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(7); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
