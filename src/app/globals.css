@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0b1215;
+  --surface: #121c20;
+  --surface-2: #1a272c;
+  --border: #24343a;
+  --foreground: #e8eef0;
+  --muted: #8ba0a7;
+  --accent: #f2a541;
+  --summit: #34d399;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-summit: var(--summit);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Leaflet tooltips styled to match the dark theme */
+.leaflet-container {
+  background: var(--background);
+  font-family: inherit;
+}
+
+/* Mute the bright topo tiles so they sit well next to the dark UI */
+.leaflet-tile-pane {
+  filter: saturate(0.75) brightness(0.8) contrast(1.05);
+}
+
+.leaflet-tooltip.peak-tooltip {
+  background: var(--surface-2);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+}
+
+.leaflet-tooltip.peak-tooltip::before {
+  display: none;
+}
+
+.leaflet-control-attribution {
+  background: rgb(11 18 21 / 0.7) !important;
+  color: var(--muted) !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--muted) !important;
 }
