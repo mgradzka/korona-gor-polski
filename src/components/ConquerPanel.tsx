@@ -11,7 +11,7 @@ export default function ConquerPanel({ peak }: { peak: Peak }) {
 
   if (conqueredOn) {
     return (
-      <div className="flex animate-[card-in_0.4s_ease-out] items-end justify-between gap-4 bg-pink p-5 text-ink">
+      <div className="flex animate-[card-in_0.4s_ease-out] items-end justify-between gap-4 bg-pink p-5 text-paper">
         <div>
           <p className="label">Zdobyty</p>
           <p className="mt-1 font-serif text-3xl leading-none">

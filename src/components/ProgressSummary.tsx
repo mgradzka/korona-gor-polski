@@ -11,6 +11,11 @@ export default function ProgressSummary({
 }) {
   const done = peaks.filter((p) => conquered[p.slug]);
   const metres = done.reduce((sum, p) => sum + p.height, 0);
+  // The most recently conquered peak is highlighted in pink, the rest are solid ink
+  const latest = done.reduce<Peak | undefined>(
+    (last, p) => (!last || conquered[p.slug] >= conquered[last.slug] ? p : last),
+    undefined,
+  );
   const highest = done.reduce<Peak | undefined>(
     (best, p) => (!best || p.height > best.height ? p : best),
     undefined,
@@ -35,7 +40,7 @@ export default function ProgressSummary({
             title={`${peak.name} · ${peak.height} m`}
             className={`aspect-square border border-ink ${
               conquered[peak.slug]
-                ? "animate-[square-pop_0.6s_ease-out] bg-pink"
+                ? `animate-[square-pop_0.6s_ease-out] ${peak.slug === latest?.slug ? "bg-pink" : "bg-ink"}`
                 : ""
             }`}
           />
@@ -45,13 +50,13 @@ export default function ProgressSummary({
       <dl className="grid grid-cols-2 border-t border-ink/25 pt-3">
         <div>
           <dt className="label opacity-70">Suma wysokości</dt>
-          <dd className="font-ui text-sm tabular-nums">
+          <dd className="font-serif text-2xl tabular-nums">
             {metres.toLocaleString("pl-PL")} m
           </dd>
         </div>
         <div>
           <dt className="label opacity-70">Najwyższy zdobyty</dt>
-          <dd className="truncate font-ui text-sm">{highest?.name ?? "—"}</dd>
+          <dd className="truncate font-serif text-2xl">{highest?.name ?? "—"}</dd>
         </div>
       </dl>
     </div>

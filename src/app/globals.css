@@ -7,7 +7,8 @@
   --paper: #edf1e4;
   --muted: #9daa95;
   --mint: #9fd1a0;
-  --pink: #d39ab8;
+  --pink: #C9578A;
+  --map-paper: #e9dfc8;
 }
 
 @theme inline {
@@ -21,6 +22,7 @@
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-instrument-serif);
   --font-ui: var(--font-inter);
+  --font-condensed: var(--font-barlow-condensed);
 }
 
 body {
@@ -29,17 +31,30 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+/* Paper grain over the whole app. A high-contrast greyscale SVG noise texture in overlay mode, so it
+   shows on both the dark panels and the light map without hurting legibility. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='2.4' intercept='-0.7'/%3E%3CfeFuncG type='linear' slope='2.4' intercept='-0.7'/%3E%3CfeFuncB type='linear' slope='2.4' intercept='-0.7'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.6;
+  mix-blend-mode: overlay;
+}
+
 ::selection {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--paper);
 }
 
 /* Small uppercase labels used throughout the UI */
 @utility label {
-  font-family: var(--font-inter);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
+  font-family: var(--font-barlow-condensed), var(--font-inter), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -75,13 +90,25 @@ body {
 }
 
 .leaflet-container {
-  background: var(--ink);
+  background: var(--map-paper);
   font-family: inherit;
 }
 
-/* Slightly dimmed so the topo map sits well next to the dark UI */
+/* Vintage print look: the bright topo colours are muted and warmed towards sepia,
+   so the map reads like an old printed hiking map rather than a modern web map */
 .leaflet-tile-pane {
-  filter: brightness(0.8) saturate(0.9);
+  filter: sepia(0.55) saturate(0.6) contrast(0.92) brightness(0.97) hue-rotate(-8deg);
+}
+
+/* Clicking a peak marker focused its SVG path and the browser drew a square focus box
+   around the circle. Hide it for mouse clicks, keep a visible ring for keyboard users. */
+.leaflet-interactive:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.leaflet-interactive:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
 }
 
 .leaflet-tooltip.peak-tooltip {

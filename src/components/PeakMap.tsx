@@ -38,6 +38,14 @@ function FlyToSelected({ peak }: { peak?: Peak }) {
 export default function PeakMap({ peaks, conquered, selected, onSelect, celebrating }: Props) {
   const selectedPeak = peaks.find((p) => p.slug === selected);
   const celebratedPeak = peaks.find((p) => p.slug === celebrating);
+  // Same rule as the progress squares: only the most recently conquered peak is pink
+  // (same tie-break too: on equal dates the later peak in the list wins)
+  const latestSlug = peaks
+    .filter((p) => conquered[p.slug])
+    .reduce<Peak | undefined>(
+      (last, p) => (!last || conquered[p.slug] >= conquered[last.slug] ? p : last),
+      undefined,
+    )?.slug;
 
   return (
     <MapContainer
@@ -60,11 +68,23 @@ export default function PeakMap({ peaks, conquered, selected, onSelect, celebrat
           interactive={false}
         />
       )}
+      {/* "You are here" style halo around the selected peak: an ink ring outside the
+          paper ring, readable on both light and dark parts of the map, and it uses no
+          marker colour, so it can't be mistaken for "conquered" or "latest" */}
+      {selectedPeak && (
+        <CircleMarker
+          key={`halo-${selectedPeak.slug}`}
+          center={selectedPeak.coords}
+          radius={15}
+          interactive={false}
+          pathOptions={{ color: "#1f271c", weight: 3, fill: false }}
+        />
+      )}
       {peaks.map((peak) => {
         const isConquered = Boolean(conquered[peak.slug]);
         const isSelected = peak.slug === selected;
-        // Conquered peaks are solid pink, the rest mint outlines (see globals.css palette).
-        const color = isConquered ? "#d39ab8" : "#9fd1a0";
+        // Conquered peaks are solid ink, the latest one pink, the rest mint (see globals.css palette).
+        const color = !isConquered ? "#9fd1a0" : peak.slug === latestSlug ? "#c9578a" : "#1f271c";
         return (
           <CircleMarker
             key={peak.slug}
@@ -72,6 +92,7 @@ export default function PeakMap({ peaks, conquered, selected, onSelect, celebrat
             radius={isSelected ? 11 : 7}
             // A dark outline keeps the mint markers readable on green lowlands.
             pathOptions={{
+              // Selected peak: a paper-coloured inner ring, framed by the ink halo below
               color: isSelected ? "#edf1e4" : "#1f271c",
               weight: isSelected ? 3 : 2,
               fillColor: color,

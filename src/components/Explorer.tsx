@@ -47,8 +47,10 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
         <header className="bg-mint p-6 text-ink">
           <div className="flex items-baseline justify-between">
             <p className="label">Korona Gór Polski</p>
-            <p className="label">28 szczytów</p>
+            <p className="label">Nr 01 · 28 szczytów</p>
           </div>
+          {/* Double rule under the masthead, like the header of an old magazine */}
+          <div className="mt-3 h-[5px] border-t-2 border-b border-ink" aria-hidden="true" />
           <h1 className="mt-6 font-serif text-4xl leading-none italic">Ile już masz?</h1>
           <div className="mt-2">
             <ProgressSummary peaks={peaks} conquered={conquered} />
@@ -56,13 +58,16 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
         </header>
 
         <div className="border-b border-line px-6 pt-5">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Szukaj szczytu lub pasma"
-            className="w-full border-b border-line bg-transparent pb-2 font-ui text-sm outline-none placeholder:text-muted focus:border-mint"
-          />
+          <label className="block font-ui text-sm text-muted">
+            Szukaj szczytu lub pasma
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="np. Tatry"
+              className="mt-2 block w-full border-b border-line bg-transparent pb-2 font-ui text-sm text-paper outline-none placeholder:text-muted/60 focus:border-mint"
+            />
+          </label>
           <div className="mt-4 flex gap-5">
             {filters.map((f) => (
               <button
@@ -94,10 +99,10 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
                     if (window.innerWidth < 1024) window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-baseline gap-2 px-6 py-3 text-left transition-colors ${
-                    isSelected ? "bg-pink text-ink" : "hover:bg-ink-2"
+                    isSelected ? "bg-pink text-paper" : "hover:bg-ink-2"
                   }`}
                 >
-                  <span className={`font-ui text-xs tabular-nums ${isSelected ? "" : "text-muted"}`}>
+                  <span className={`font-condensed text-sm tabular-nums ${isSelected ? "" : "text-muted"}`}>
                     {rank}
                   </span>
                   <span className="min-w-0">
@@ -105,7 +110,7 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
                       {peak.name}
                       {isDone && (
                         <span
-                          className={`size-2 shrink-0 ${isSelected ? "bg-ink" : "bg-pink"}`}
+                          className={`size-2 shrink-0 ${isSelected ? "bg-paper" : "bg-pink"}`}
                           aria-label="zdobyty"
                         />
                       )}
@@ -114,7 +119,7 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
                       {peak.range}
                     </span>
                   </span>
-                  <span className="font-ui text-sm tabular-nums">{peak.height}</span>
+                  <span className="font-condensed text-lg font-semibold tabular-nums">{peak.height}</span>
                 </button>
               </li>
             );
@@ -134,6 +139,26 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
           celebrating={celebrating}
         />
 
+        {/* Map legend, styled like the key on an old printed map */}
+        <dl
+          aria-label="Legenda mapy"
+          className="pointer-events-none absolute top-3 right-3 z-[1000] space-y-1.5 border border-ink bg-[var(--map-paper)] px-3 py-2.5 text-ink"
+        >
+          <dt className="label">Legenda</dt>
+          <dd className="label flex items-center gap-2 font-medium">
+            <span className="size-3 shrink-0 rounded-full border-2 border-ink bg-mint" aria-hidden="true" />
+            Do zdobycia
+          </dd>
+          <dd className="label flex items-center gap-2 font-medium">
+            <span className="size-3 shrink-0 rounded-full border-2 border-ink bg-ink" aria-hidden="true" />
+            Zdobyty szczyt
+          </dd>
+          <dd className="label flex items-center gap-2 font-medium">
+            <span className="size-3 shrink-0 rounded-full border-2 border-ink bg-pink" aria-hidden="true" />
+            Ostatnio zdobyty
+          </dd>
+        </dl>
+
         {selectedPeak && (
           <article
             key={selectedPeak.slug}
@@ -141,7 +166,7 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
           >
             <button
               onClick={() => setSelected(undefined)}
-              className="absolute top-0 right-0 z-10 flex size-9 items-center justify-center bg-ink font-ui text-paper hover:bg-pink hover:text-ink"
+              className="absolute top-0 right-0 z-10 flex size-9 items-center justify-center bg-ink font-ui text-paper hover:bg-pink hover:text-paper"
               aria-label="Zamknij i wróć do widoku Polski"
             >
               ✕
@@ -171,7 +196,7 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
               {conquered[selectedPeak.slug] ? (
                 <button
                   onClick={() => unconquer(selectedPeak.slug)}
-                  className="label animate-[card-in_0.35s_ease-out] bg-pink px-4 py-3 text-left text-ink hover:brightness-95"
+                  className="label animate-[card-in_0.35s_ease-out] bg-pink px-4 py-3 text-left text-paper hover:brightness-95"
                   title="Kliknij, aby cofnąć"
                 >
                   Zdobyty {new Date(conquered[selectedPeak.slug]).toLocaleDateString("pl-PL")}

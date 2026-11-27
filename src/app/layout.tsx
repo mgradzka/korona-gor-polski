@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Inter, Instrument_Serif } from "next/font/google";
+import { Barlow_Condensed, Geist, Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 const sans = Geist({
@@ -11,6 +11,13 @@ const serif = Instrument_Serif({
   variable: "--font-instrument-serif",
   weight: "400",
   style: ["normal", "italic"],
+  subsets: ["latin", "latin-ext"],
+});
+
+// Condensed caps for labels and numbers, like the small print on old maps and magazines
+const condensed = Barlow_Condensed({
+  variable: "--font-barlow-condensed",
+  weight: ["500", "600"],
   subsets: ["latin", "latin-ext"],
 });
 
@@ -32,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pl">
-      <body className={`${sans.variable} ${serif.variable} ${ui.variable} antialiased`}>
+      <body className={`${sans.variable} ${serif.variable} ${ui.variable} ${condensed.variable} antialiased`}>
         {children}
       </body>
     </html>
