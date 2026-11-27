@@ -2,13 +2,46 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Peak } from "@/lib/peaks";
 import { useConquered } from "@/lib/conquered";
+import ConquestDateInput from "./ConquestDateInput";
 import MapView from "./MapView";
+import MobilePeakSheet from "./MobilePeakSheet";
 import ProgressSummary from "./ProgressSummary";
 
 type Filter = "all" | "done" | "todo";
+
+const HINT_KEY = "kgp:map-hint-seen";
+
+/** Views of the bottom navigation on phones. On desktop everything is visible at once. */
+type Tab = "map" | "list" | "progress";
+
+const TABS: { value: Tab; label: string; icon: React.ReactNode }[] = [
+  {
+    value: "map",
+    label: "Mapa",
+    icon: (
+      <>
+        <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" />
+        <path d="M9 4v14M15 6v14" />
+      </>
+    ),
+  },
+  { value: "list", label: "Szczyty", icon: <path d="M2 20l7-12 4 6 3-4 6 10z" /> },
+  {
+    value: "progress",
+    label: "Postęp",
+    icon: (
+      <>
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+      </>
+    ),
+  },
+];
 
 export default function Explorer({ peaks }: { peaks: Peak[] }) {
   const { conquered, conquer, unconquer } = useConquered();
@@ -16,6 +49,30 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [celebrating, setCelebrating] = useState<string>();
+  const [tab, setTab] = useState<Tab>("map");
+  // First-visit hint on the phone map. Read from storage after mount (not during render)
+  // so the server-rendered HTML and the first client render match.
+  const [showHint, setShowHint] = useState(false);
+  useEffect(() => {
+    try {
+      setShowHint(!localStorage.getItem(HINT_KEY));
+    } catch {
+      // Storage unavailable: just skip the hint.
+    }
+  }, []);
+  const dismissHint = () => {
+    setShowHint(false);
+    try {
+      localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      // Storage unavailable: the hint just comes back next visit.
+    }
+  };
+  // Opening a peak for the first time means the hint has done its job.
+  const openPeak = (slug: string) => {
+    setSelected(slug);
+    if (showHint) dismissHint();
+  };
 
   const conquerWithCelebration = (slug: string) => {
     conquer(slug);
@@ -41,10 +98,17 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
 
   const selectedPeak = peaks.find((p) => p.slug === selected);
 
+  // Phone layout: the map always stays mounted underneath (Leaflet breaks when it is
+  // hidden with display:none), and the list / progress views are panels laid over it.
+  // From lg up these classes fall back to the side-by-side desktop layout.
   return (
-    <div className="flex flex-col-reverse lg:h-dvh lg:flex-row">
-      <aside className="flex flex-col border-line lg:w-[26rem] lg:shrink-0 lg:border-r">
-        <header className="bg-mint p-6 text-ink">
+    <div className="relative h-dvh overflow-hidden lg:flex lg:flex-row">
+      <aside
+        className={`${tab === "map" ? "hidden" : "flex"} absolute inset-x-0 top-0 bottom-[var(--nav-h)] z-[1100] flex-col overflow-y-auto bg-ink lg:static lg:z-auto lg:flex lg:w-[26rem] lg:shrink-0 lg:overflow-visible lg:border-r lg:border-line`}
+      >
+        <header
+          className={`${tab === "progress" ? "block flex-1" : "hidden"} bg-mint p-6 text-ink lg:block lg:flex-none`}
+        >
           <div className="flex items-baseline justify-between">
             <p className="label">Korona Gór Polski</p>
             <p className="label">Nr 01 · 28 szczytów</p>
@@ -57,101 +121,134 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
           </div>
         </header>
 
-        <div className="border-b border-line px-6 pt-5">
-          <label className="block font-ui text-sm text-muted">
-            Szukaj szczytu lub pasma
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="np. Tatry"
-              className="mt-2 block w-full border-b border-line bg-transparent pb-2 font-ui text-sm text-paper outline-none placeholder:text-muted/60 focus:border-mint"
-            />
-          </label>
-          <div className="mt-4 flex gap-5">
-            {filters.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
-                className={`label -mb-px border-b-2 pb-3 transition-colors ${
-                  filter === f.value
-                    ? "border-mint text-paper"
-                    : "border-transparent text-muted hover:text-paper"
-                }`}
-              >
-                {f.label} <span className="tabular-nums opacity-60">{f.count}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <ol className="peak-scroll flex-1 overflow-y-auto">
-          {visible.map((peak) => {
-            const isDone = Boolean(conquered[peak.slug]);
-            const isSelected = peak.slug === selected;
-            const rank = String(peaks.indexOf(peak) + 1).padStart(2, "0");
-            return (
-              <li key={peak.slug} className="border-b border-line">
+        <div className={`${tab === "list" ? "flex" : "hidden"} min-h-0 flex-1 flex-col lg:flex`}>
+          <div className="border-b border-line px-6 pt-5">
+            <label className="block font-ui text-sm text-muted">
+              Szukaj szczytu lub pasma
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="np. Tatry"
+                className="mt-2 block w-full border-b border-line bg-transparent pb-2 font-ui text-sm text-paper outline-none placeholder:text-muted/60 focus:border-mint"
+              />
+            </label>
+            <div className="mt-4 flex gap-5">
+              {filters.map((f) => (
                 <button
-                  onClick={() => {
-                    setSelected(peak.slug);
-                    // On mobile the map sits above the list — bring it into view.
-                    if (window.innerWidth < 1024) window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-baseline gap-2 px-6 py-3 text-left transition-colors ${
-                    isSelected ? "bg-pink text-paper" : "hover:bg-ink-2"
+                  key={f.value}
+                  onClick={() => setFilter(f.value)}
+                  className={`label -mb-px border-b-2 pb-3 transition-colors ${
+                    filter === f.value
+                      ? "border-mint text-paper"
+                      : "border-transparent text-muted hover:text-paper"
                   }`}
                 >
-                  <span className={`font-condensed text-sm tabular-nums ${isSelected ? "" : "text-muted"}`}>
-                    {rank}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2 truncate font-serif text-2xl leading-tight">
-                      {peak.name}
-                      {isDone && (
-                        <span
-                          className={`size-2 shrink-0 ${isSelected ? "bg-paper" : "bg-pink"}`}
-                          aria-label="zdobyty"
-                        />
-                      )}
-                    </span>
-                    <span className={`label block truncate ${isSelected ? "" : "text-muted"}`}>
-                      {peak.range}
-                    </span>
-                  </span>
-                  <span className="font-condensed text-lg font-semibold tabular-nums">{peak.height}</span>
+                  {f.label} <span className="tabular-nums opacity-60">{f.count}</span>
                 </button>
-              </li>
-            );
-          })}
-          {visible.length === 0 && (
-            <li className="label p-6 text-muted">Brak szczytów dla tego filtra</li>
-          )}
-        </ol>
+              ))}
+            </div>
+          </div>
+
+          <ol className="peak-scroll flex-1 overflow-y-auto">
+            {visible.map((peak) => {
+              const isDone = Boolean(conquered[peak.slug]);
+              const isSelected = peak.slug === selected;
+              const rank = String(peaks.indexOf(peak) + 1).padStart(2, "0");
+              return (
+                <li key={peak.slug} className="border-b border-line">
+                  <button
+                    onClick={() => openPeak(peak.slug)}
+                    className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-baseline gap-2 px-6 py-3 text-left transition-colors ${
+                      isSelected ? "bg-pink text-paper" : "hover:bg-ink-2"
+                    }`}
+                  >
+                    <span className={`font-condensed text-sm tabular-nums ${isSelected ? "" : "text-muted"}`}>
+                      {rank}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-2 truncate font-serif text-2xl leading-tight">
+                        {peak.name}
+                        {isDone && (
+                          <span
+                            className={`size-2 shrink-0 ${isSelected ? "bg-paper" : "bg-pink"}`}
+                            aria-label="zdobyty"
+                          />
+                        )}
+                      </span>
+                      <span className={`label block truncate ${isSelected ? "" : "text-muted"}`}>
+                        {peak.range}
+                      </span>
+                    </span>
+                    <span className="font-condensed text-lg font-semibold tabular-nums">{peak.height}</span>
+                  </button>
+                </li>
+              );
+            })}
+            {visible.length === 0 && (
+              <li className="label p-6 text-muted">Brak szczytów dla tego filtra</li>
+            )}
+          </ol>
+        </div>
       </aside>
 
-      <section className="relative h-[60vh] shrink-0 lg:h-auto lg:flex-1">
+      <section className="absolute inset-x-0 top-0 bottom-[var(--nav-h)] lg:relative lg:inset-auto lg:flex-1">
         <MapView
           peaks={peaks}
           conquered={conquered}
           selected={selected}
-          onSelect={setSelected}
+          onSelect={openPeak}
           celebrating={celebrating}
         />
 
-        {/* Map legend, styled like the key on an old printed map */}
+        {/* Phone-only masthead over the map, so the first screen says what the app is
+            and how far you are. The counter jumps to the Postęp tab. */}
+        <header className="absolute inset-x-0 top-0 z-[1000] h-14 bg-mint px-4 pt-2.5 text-ink lg:hidden">
+          <div className="flex items-center justify-between">
+            <p className="label">Korona Gór Polski</p>
+            <button
+              onClick={() => setTab("progress")}
+              className="label -my-2 flex min-h-11 items-center gap-1.5 tabular-nums"
+              aria-label={`Zdobyte ${doneCount} z ${peaks.length}, pokaż postęp`}
+            >
+              <span className="font-serif text-xl tracking-normal normal-case">
+                {String(doneCount).padStart(2, "0")}
+              </span>
+              / {peaks.length} →
+            </button>
+          </div>
+          <div className="mt-1.5 h-[5px] border-t-2 border-b border-ink" aria-hidden="true" />
+        </header>
+
+        {showHint && (
+          <div className="absolute inset-x-3 bottom-7 z-[1000] flex animate-[card-in_0.4s_ease-out] items-start gap-3 border border-ink bg-ink p-4 text-paper lg:hidden">
+            <p className="flex-1 font-ui text-sm leading-snug">
+              Dotknij szczyt na mapie, żeby zobaczyć pogodę na szczycie i oznaczyć zdobycie.
+            </p>
+            <button
+              onClick={dismissHint}
+              aria-label="Zamknij podpowiedź"
+              className="-m-2 flex size-11 shrink-0 items-center justify-center font-ui"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Map legend, styled like the key on an old printed map. Compact on phones,
+            where it sits under the masthead. */}
         <dl
           aria-label="Legenda mapy"
-          className="pointer-events-none absolute top-3 right-3 z-[1000] space-y-1.5 border border-ink bg-[var(--map-paper)] px-3 py-2.5 text-ink"
+          className="pointer-events-none absolute top-[4.25rem] right-3 lg:top-3 z-[1000] space-y-1 border border-ink bg-[var(--map-paper)] px-2.5 py-2 text-ink lg:space-y-1.5 lg:px-3 lg:py-2.5"
         >
-          <dt className="label">Legenda</dt>
+          <dt className="label hidden lg:block">Legenda</dt>
           <dd className="label flex items-center gap-2 font-medium">
             <span className="size-3 shrink-0 rounded-full border-2 border-ink bg-mint" aria-hidden="true" />
             Do zdobycia
           </dd>
           <dd className="label flex items-center gap-2 font-medium">
             <span className="size-3 shrink-0 rounded-full border-2 border-ink bg-ink" aria-hidden="true" />
-            Zdobyty szczyt
+            Zdobyty
           </dd>
           <dd className="label flex items-center gap-2 font-medium">
             <span className="size-3 shrink-0 rounded-full border-2 border-ink bg-pink" aria-hidden="true" />
@@ -162,7 +259,7 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
         {selectedPeak && (
           <article
             key={selectedPeak.slug}
-            className="absolute inset-x-3 bottom-3 z-[1000] animate-[card-in_0.4s_ease-out] border border-line bg-ink sm:left-auto sm:right-4 sm:bottom-4 sm:w-80"
+            className="absolute right-4 bottom-4 z-[1000] hidden w-80 animate-[card-in_0.4s_ease-out] border border-line bg-ink lg:block"
           >
             <button
               onClick={() => setSelected(undefined)}
@@ -194,13 +291,19 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
             </div>
             <div className="grid grid-cols-[1fr_auto] border-t border-line">
               {conquered[selectedPeak.slug] ? (
-                <button
-                  onClick={() => unconquer(selectedPeak.slug)}
-                  className="label animate-[card-in_0.35s_ease-out] bg-pink px-4 py-3 text-left text-paper hover:brightness-95"
-                  title="Kliknij, aby cofnąć"
-                >
-                  Zdobyty {new Date(conquered[selectedPeak.slug]).toLocaleDateString("pl-PL")}
-                </button>
+                <div className="flex animate-[card-in_0.35s_ease-out] items-center justify-between gap-2 bg-pink px-4 py-2 text-paper">
+                  <ConquestDateInput
+                    value={conquered[selectedPeak.slug]}
+                    onChange={(date) => conquer(selectedPeak.slug, date)}
+                    className="font-condensed text-sm font-semibold tracking-wider"
+                  />
+                  <button
+                    onClick={() => unconquer(selectedPeak.slug)}
+                    className="label underline underline-offset-4 hover:no-underline"
+                  >
+                    Cofnij
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={() => conquerWithCelebration(selectedPeak.slug)}
@@ -219,6 +322,56 @@ export default function Explorer({ peaks }: { peaks: Peak[] }) {
           </article>
         )}
       </section>
+
+      {selectedPeak && (
+        <MobilePeakSheet
+          key={selectedPeak.slug}
+          peak={selectedPeak}
+          rank={peaks.indexOf(selectedPeak) + 1}
+          total={peaks.length}
+          conqueredOn={conquered[selectedPeak.slug]}
+          onConquer={() => conquerWithCelebration(selectedPeak.slug)}
+          onUnconquer={() => unconquer(selectedPeak.slug)}
+          onChangeDate={(date) => conquer(selectedPeak.slug, date)}
+          onClose={() => setSelected(undefined)}
+        />
+      )}
+
+      <nav
+        aria-label="Widoki"
+        className="absolute inset-x-0 bottom-0 z-[1300] grid h-[var(--nav-h)] grid-cols-3 border-t border-line bg-ink pb-[env(safe-area-inset-bottom)] lg:hidden"
+      >
+        {TABS.map((t) => {
+          const active = tab === t.value;
+          return (
+            <button
+              key={t.value}
+              onClick={() => {
+                setTab(t.value);
+                setSelected(undefined);
+              }}
+              aria-current={active ? "page" : undefined}
+              className={`label flex flex-col items-center justify-center gap-1 ${
+                active ? "text-mint" : "text-paper"
+              }`}
+            >
+              <svg
+                aria-hidden="true"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              >
+                {t.icon}
+              </svg>
+              {t.label}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

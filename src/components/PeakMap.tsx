@@ -1,7 +1,7 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { divIcon } from "leaflet";
+import { divIcon, latLngBounds } from "leaflet";
 import { useEffect } from "react";
 import { CircleMarker, MapContainer, Marker, TileLayer, Tooltip, useMap } from "react-leaflet";
 import type { Peak } from "@/lib/peaks";
@@ -25,13 +25,23 @@ const rippleIcon = divIcon({
 });
 const overviewZoom = () => (window.innerWidth < 640 ? 6 : 7);
 
-/** Flies to the selected peak, or back to the whole country when nothing is selected */
-function FlyToSelected({ peak }: { peak?: Peak }) {
+/**
+ * Flies to the selected peak, or back to the overview when nothing is selected.
+ * On phones the overview fits exactly the band of mountains where the peaks are
+ * (the whole of Poland leaves them tiny); the top padding keeps them clear of the legend.
+ */
+function FlyToSelected({ peak, peaks }: { peak?: Peak; peaks: Peak[] }) {
   const map = useMap();
   useEffect(() => {
     if (peak) map.flyTo(peak.coords, Math.max(map.getZoom(), 9), { duration: 0.8 });
+    else if (window.innerWidth < 640)
+      map.flyToBounds(latLngBounds(peaks.map((p) => p.coords)), {
+        paddingTopLeft: [20, 150],
+        paddingBottomRight: [20, 20],
+        duration: 0.8,
+      });
     else map.flyTo(POLAND_CENTER, overviewZoom(), { duration: 0.8 });
-  }, [peak, map]);
+  }, [peak, peaks, map]);
   return null;
 }
 
@@ -52,6 +62,7 @@ export default function PeakMap({ peaks, conquered, selected, onSelect, celebrat
       center={POLAND_CENTER}
       zoom={overviewZoom()}
       minZoom={6}
+      zoomSnap={0.25}
       className="h-full w-full"
     >
       <TileLayer
@@ -59,7 +70,7 @@ export default function PeakMap({ peaks, conquered, selected, onSelect, celebrat
         url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
         maxZoom={17}
       />
-      <FlyToSelected peak={selectedPeak} />
+      <FlyToSelected peak={selectedPeak} peaks={peaks} />
       {celebratedPeak && (
         <Marker
           key={celebratedPeak.slug}

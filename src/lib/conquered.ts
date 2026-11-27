@@ -46,12 +46,17 @@ function subscribe(listener: () => void) {
   };
 }
 
+export function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function useConquered() {
   const conquered = useSyncExternalStore(subscribe, read, () => EMPTY);
 
   return {
     conquered,
-    conquer: (slug: string, date = new Date().toISOString().slice(0, 10)) =>
+    conquer: (slug: string, date = todayIso()) =>
       write({ ...read(), [slug]: date }),
     unconquer: (slug: string) => {
       const next = { ...read() };

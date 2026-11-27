@@ -9,6 +9,7 @@
   --mint: #9fd1a0;
   --pink: #C9578A;
   --map-paper: #e9dfc8;
+  --nav-h: calc(4rem + env(safe-area-inset-bottom));
 }
 
 @theme inline {
@@ -109,6 +110,14 @@ body::after {
 .leaflet-interactive:focus-visible {
   outline: 2px solid var(--pink);
   outline-offset: 2px;
+}
+
+/* On phones the masthead covers the top of the map: move the zoom buttons below it */
+@media (width < 64rem) {
+  /* Extra class for specificity: leaflet.css is loaded after this file */
+  .leaflet-container .leaflet-top {
+    top: 3.5rem;
+  }
 }
 
 .leaflet-tooltip.peak-tooltip {
